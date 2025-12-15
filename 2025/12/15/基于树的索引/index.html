@@ -1,0 +1,519 @@
+
+
+
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#FFF">
+  <link rel="apple-touch-icon" sizes="180x180" href="/https:/klbq-web-cms.strinova.com/prod/strinova_web/images/202505/cbce49dd-9918-4055-923f-75827f24b54d.jpg/apple-touch-icon.png">
+
+<link rel="icon" type="image/ico" sizes="32x32" href="/https:/klbq-web-cms.strinova.com/prod/strinova_web/images/202505/cbce49dd-9918-4055-923f-75827f24b54d.jpg/favicon.ico">
+  <meta http-equiv="Cache-Control" content="no-transform">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+<link rel="alternate" type="application/rss+xml" title="橙子的小站" href="https://orangeplz.github.io/rss.xml" />
+<link rel="alternate" type="application/atom+xml" title="橙子的小站" href="https://orangeplz.github.io/atom.xml" />
+<link rel="alternate" type="application/json" title="橙子的小站" href="https://orangeplz.github.io/feed.json" />
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Mulish:300,300italic,400,400italic,700,700italic%7CFredericka%20the%20Great:300,300italic,400,400italic,700,700italic%7CNoto%20Serif%20JP:300,300italic,400,400italic,700,700italic%7CNoto%20Serif%20SC:300,300italic,400,400italic,700,700italic%7CInconsolata:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="/css/app.css?v=0.2.5">
+
+  
+  <meta name="keywords" content="数据库,技术,索引" />
+
+
+<link rel="canonical" href="https://orangeplz.github.io/2025/12/15/%E5%9F%BA%E4%BA%8E%E6%A0%91%E7%9A%84%E7%B4%A2%E5%BC%95/">
+
+
+
+  <title>
+深度解析基于树的索引：从二叉树到B+树与LSM树 - 技术 |
+橙子的小窝 = 橙子的小站 = 记录猪生活</title>
+<meta name="generator" content="Hexo 8.1.1"></head>
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div id="loading">
+    <div class="cat">
+      <div class="body"></div>
+      <div class="head">
+        <div class="face"></div>
+      </div>
+      <div class="foot">
+        <div class="tummy-end"></div>
+        <div class="bottom"></div>
+        <div class="legs left"></div>
+        <div class="legs right"></div>
+      </div>
+      <div class="paw">
+        <div class="hands left"></div>
+        <div class="hands right"></div>
+      </div>
+    </div>
+  </div>
+  <div id="container">
+    <header id="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="inner">
+        <div id="brand">
+          <div class="pjax">
+          
+  <h1 itemprop="name headline">深度解析基于树的索引：从二叉树到B+树与LSM树
+  </h1>
+  
+<div class="meta">
+  <span class="item" title="创建时间：2025-12-15 15:45:00">
+    <span class="icon">
+      <i class="ic i-calendar"></i>
+    </span>
+    <span class="text">发表于</span>
+    <time itemprop="dateCreated datePublished" datetime="2025-12-15T15:45:00+08:00">2025-12-15</time>
+  </span>
+</div>
+
+
+          </div>
+        </div>
+        <nav id="nav">
+  <div class="inner">
+    <div class="toggle">
+      <div class="lines" aria-label="切换导航栏">
+        <span class="line"></span>
+        <span class="line"></span>
+        <span class="line"></span>
+      </div>
+    </div>
+    <ul class="menu">
+      <li class="item title"><a href="/" rel="start">橙子的小窝</a></li>
+    </ul>
+    <ul class="right">
+      <li class="item theme">
+        <i class="ic i-sun"></i>
+      </li>
+      <li class="item search">
+        <i class="ic i-search"></i>
+      </li>
+    </ul>
+  </div>
+</nav>
+
+      </div>
+      <div id="imgs" class="pjax">
+          <img src="https://shouyoujz.com/wp-content/uploads/2022/03/1-1.jpg">
+      </div>
+    </header>
+    <div id="waves">
+      <svg class="waves" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 24 150 28" preserveAspectRatio="none" shape-rendering="auto">
+        <defs>
+          <path id="gentle-wave" d="M-160 44c30 0 58-18 88-18s 58 18 88 18 58-18 88-18 58 18 88 18 v44h-352z" />
+        </defs>
+        <g class="parallax">
+          <use xlink:href="#gentle-wave" x="48" y="0" />
+          <use xlink:href="#gentle-wave" x="48" y="3" />
+          <use xlink:href="#gentle-wave" x="48" y="5" />
+          <use xlink:href="#gentle-wave" x="48" y="7" />
+        </g>
+      </svg>
+    </div>
+    <main>
+      <div class="inner">
+        <div id="main" class="pjax">
+          
+  <div class="article wrap">
+    
+<div class="breadcrumb" itemscope itemtype="https://schema.org/BreadcrumbList">
+<i class="ic i-home"></i>
+<span><a href="/">首页</a></span><i class="ic i-angle-right"></i>
+<span  class="current" itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem"><a href="/categories/%E6%8A%80%E6%9C%AF/" itemprop="item" rel="index" title="分类于 技术"><span itemprop="name">技术</span></a>
+<meta itemprop="position" content="1" /></span>
+</div>
+
+    <article itemscope itemtype="http://schema.org/Article" class="post block" lang="zh-CN">
+  <link itemprop="mainEntityOfPage" href="https://orangeplz.github.io/2025/12/15/%E5%9F%BA%E4%BA%8E%E6%A0%91%E7%9A%84%E7%B4%A2%E5%BC%95/">
+
+  <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <meta itemprop="image" content="/https:/klbq-web-cms.strinova.com/prod/strinova_web/images/202505/cbce49dd-9918-4055-923f-75827f24b54d.jpg/source/images/avatar.png">
+    <meta itemprop="name" content="橙子">
+    <meta itemprop="description" content="记录猪生活, ">
+  </span>
+
+  <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+    <meta itemprop="name" content="橙子的小站">
+  </span>
+
+  <div class="body md" itemprop="articleBody">
+    
+
+    <h1 id="深入解析基于树的索引从二叉树到-b-树与-lsm-树"><a class="markdownIt-Anchor" href="#深入解析基于树的索引从二叉树到-b-树与-lsm-树">#</a> 深入解析基于树的索引：从二叉树到 B+ 树与 LSM 树</h1>
+<p>在数据库和存储系统的设计中，<strong>索引（Indexing）</strong> 是提升查询性能的基石。如果把数据库比作一本厚重的百科全书，那么索引就是书后的目录。没有它，我们只能逐页翻阅（Full Table Scan），效率极低。</p>
+<p>在众多的索引数据结构中，<strong>基于树（Tree-based）</strong> 的结构占据了统治地位。本文将带你深入了解从基础的二叉搜索树，到关系型数据库标配的 B+ 树，再到 NoSQL 时代大放异彩的 LSM 树的演进之路。</p>
+<hr>
+<h2 id="1-起点二叉搜索树-bst"><a class="markdownIt-Anchor" href="#1-起点二叉搜索树-bst">#</a> 1. 起点：二叉搜索树 (BST)</h2>
+<p>一切基于树的索引思想，都源于 <strong>二叉搜索树 (Binary Search Tree, BST)</strong>。</p>
+<h3 id="核心逻辑"><a class="markdownIt-Anchor" href="#核心逻辑">#</a> 核心逻辑</h3>
+<p>BST 满足一个简单的性质：对于任意节点，其左子树所有节点的值 &lt; 当前节点值 &lt; 右子树所有节点的值。</p>
+<p>这种结构使得查找、插入和删除的平均时间复杂度为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><mi>log</mi><mo>⁡</mo><mi>N</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(\log N)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.02778em;">O</span><span class="mopen">(</span><span class="mop">lo<span style="margin-right:0.01389em;">g</span></span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathnormal" style="margin-right:0.10903em;">N</span><span class="mclose">)</span></span></span></span>。这比线性扫描的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><mi>N</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(N)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.02778em;">O</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.10903em;">N</span><span class="mclose">)</span></span></span></span> 要快得多。</p>
+<h3 id="致命缺陷"><a class="markdownIt-Anchor" href="#致命缺陷">#</a> 致命缺陷</h3>
+<p>BST 在极端情况下（例如按顺序插入数据 1, 2, 3, 4…）会退化成一个<strong>链表</strong>。此时，树的高度等于节点数 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi></mrow><annotation encoding="application/x-tex">N</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathnormal" style="margin-right:0.10903em;">N</span></span></span></span>，查找复杂度退化为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><mi>N</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(N)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.02778em;">O</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.10903em;">N</span><span class="mclose">)</span></span></span></span>。</p>
+<p>为了解决这个问题，<strong>平衡二叉树</strong>（如 AVL 树、红黑树）应运而生。它们通过旋转操作保证树的高度维持在 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>log</mi><mo>⁡</mo><mi>N</mi></mrow><annotation encoding="application/x-tex">\log N</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8888799999999999em;vertical-align:-0.19444em;"></span><span class="mop">lo<span style="margin-right:0.01389em;">g</span></span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathnormal" style="margin-right:0.10903em;">N</span></span></span></span> 级别。</p>
+<p><strong>既然有了红黑树（Red-Black Tree），为什么数据库不用它做索引？</strong></p>
+<blockquote>
+<p><strong>关键原因：磁盘 I/O。</strong><br>
+数据库的数据量通常远超内存大小，必须存储在磁盘上。红黑树是一个 “瘦高” 的树，节点只有两个子节点。在海量数据下，树的高度会很高。每一次指针跳转都可能意味着一次磁盘寻道（Disk Seek），这在机械硬盘时代是性能杀手。</p>
+</blockquote>
+<hr>
+<h2 id="2-磁盘时代的王者b-tree"><a class="markdownIt-Anchor" href="#2-磁盘时代的王者b-tree">#</a> 2. 磁盘时代的王者：B-Tree</h2>
+<p>为了减少磁盘 I/O 次数，我们需要把树从 “瘦高” 变成 “矮胖”。1970 年，Rudolf Bayer 和 Edward M. McCreight 提出了 <strong>B-Tree</strong>（多路平衡查找树）。</p>
+<h3 id="核心特性"><a class="markdownIt-Anchor" href="#核心特性">#</a> 核心特性</h3>
+<ol>
+<li><strong>多路（Multi-way）：</strong> 每个节点可以存储多个关键字（Key）和多个子节点指针。</li>
+<li><strong>节点大小对齐磁盘页：</strong> 通常一个节点的大小被设计为等于一个磁盘页（Page，通常是 4KB 或 16KB）。这样一次磁盘 I/O 就能读出一个包含很多 Key 的节点。</li>
+<li><strong>绝对平衡：</strong> 所有叶子节点都在同一层。</li>
+</ol>
+<h3 id="优势"><a class="markdownIt-Anchor" href="#优势">#</a> 优势</h3>
+<p>通过增加节点的<strong>扇出（Fan-out）</strong>，B-Tree 极大地降低了树的高度。即使是存储数亿条数据，树的高度通常也只有 3 到 4 层，意味着只需要 3-4 次磁盘 I/O 即可定位数据。</p>
+<hr>
+<h2 id="3-工业界的事实标准b-tree"><a class="markdownIt-Anchor" href="#3-工业界的事实标准b-tree">#</a> 3. 工业界的事实标准：B+ Tree</h2>
+<p>虽然 B-Tree 很优秀，但现代关系型数据库（如 MySQL 的 InnoDB 引擎）使用的是它的变种：<strong>B+ Tree</strong>。</p>
+<h3 id="b-tree-与-b-tree-的核心区别"><a class="markdownIt-Anchor" href="#b-tree-与-b-tree-的核心区别">#</a> B+ Tree 与 B-Tree 的核心区别</h3>
+<ol>
+<li><strong>数据只在叶子节点：</strong>
+<ul>
+<li><strong>B-Tree:</strong> 非叶子节点既存储 Key 也存储 Value（实际数据或数据行地址）。</li>
+<li><strong>B+ Tree:</strong> 非叶子节点<strong>只存储 Key</strong>（作为路标），所有的 Value 都存储在<strong>叶子节点</strong>。</li>
+</ul>
+</li>
+<li><strong>叶子节点由链表连接：</strong>
+<ul>
+<li>B+ Tree 的所有叶子节点通过双向链表（或单向）连接起来。</li>
+</ul>
+</li>
+</ol>
+<h3 id="为什么-b-tree-更适合数据库"><a class="markdownIt-Anchor" href="#为什么-b-tree-更适合数据库">#</a> 为什么 B+ Tree 更适合数据库？</h3>
+<ul>
+<li><strong>更矮的树高：</strong> 由于非叶子节点不存数据，同样的磁盘页可以塞下更多的 Key。这意味着扇出更大，树更矮，I/O 次数更少。</li>
+<li><strong>极致的范围查询（Range Scan）：</strong> 这是 B+ Tree 最大的杀手锏。当执行  <code>SELECT * FROM table WHERE id BETWEEN 100 AND 1000</code>  时：
+<ul>
+<li><strong>B-Tree</strong> 需要进行中序遍历，在树的各层间跳跃，产生大量随机 I/O。</li>
+<li><strong>B+ Tree</strong> 只需要找到 100 所在的叶子节点，然后顺着链表横向遍历直到 1000 即可，也就是<strong>顺序 I/O</strong>，速度极快。</li>
+</ul>
+</li>
+<li><strong>查询性能稳定：</strong> 任何查询都必须走到叶子节点，耗时几乎一致。</li>
+</ul>
+<hr>
+<h2 id="4-写密集型场景的新星lsm-tree"><a class="markdownIt-Anchor" href="#4-写密集型场景的新星lsm-tree">#</a> 4. 写密集型场景的新星：LSM Tree</h2>
+<p>随着大数据和 NoSQL（如 HBase, Cassandra, RocksDB）的兴起，B+ Tree 在<strong>大规模随机写入</strong>场景下显露疲态。因为 B+ Tree 为了维护平衡和有序，插入新数据时经常需要分裂节点（Page Split），导致大量的随机磁盘写入。</p>
+<p><strong>LSM Tree (Log-Structured Merge-tree)</strong> 采用了完全不同的思路：<strong>用读性能换写性能</strong>。</p>
+<h3 id="工作原理"><a class="markdownIt-Anchor" href="#工作原理">#</a> 工作原理</h3>
+<ol>
+<li><strong>内存写入 (MemTable):</strong> 数据首先写入内存中的 MemTable（通常是跳表或红黑树）。这是纯内存操作，速度极快。</li>
+<li><strong>磁盘刷写 (Flush):</strong> 当 MemTable 达到阈值，它被标记为不可变（Immutable），然后顺序写入磁盘，成为 <strong>SSTable (Sorted String Table)</strong>。注意：这是<strong>顺序写</strong>，极大优化了 HDD/SSD 的性能。</li>
+<li><strong>合并 (Compaction):</strong> 随着 SSTable 越来越多，后台线程会将它们归并排序，合并成更大的 SSTable，同时清理被删除或覆盖的旧数据。</li>
+</ol>
+<h3 id="优缺点权衡"><a class="markdownIt-Anchor" href="#优缺点权衡">#</a> 优缺点权衡</h3>
+<ul>
+<li><strong>优点：</strong> 极高的写入吞吐量（利用顺序写）。</li>
+<li><strong>缺点：</strong> * <strong>读放大（Read Amplification）：</strong> 读取数据时，可能需要依次查找 MemTable 和多个层级的 SSTable。
+<ul>
+<li><strong>空间放大：</strong> 相同的数据可能在不同层级的 SSTable 中存在多份。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="5-总结与选型指南"><a class="markdownIt-Anchor" href="#5-总结与选型指南">#</a> 5. 总结与选型指南</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">特性</th>
+<th style="text-align:left">B+ Tree</th>
+<th style="text-align:left">LSM Tree</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>典型应用</strong></td>
+<td style="text-align:left">MySQL (InnoDB), PostgreSQL</td>
+<td style="text-align:left">RocksDB, HBase, Cassandra, LevelDB</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>优势场景</strong></td>
+<td style="text-align:left"><strong>读多写少</strong>，强一致性，复杂的范围查询</td>
+<td style="text-align:left"><strong>写多读少</strong>，海量数据摄入，日志型数据</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>I/O 模式</strong></td>
+<td style="text-align:left">随机读写较多 (需优化)</td>
+<td style="text-align:left">顺序写 (极优)，随机读 (较慢)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>空间利用率</strong></td>
+<td style="text-align:left">节点可能有碎片 (Page Fragmentation)</td>
+<td style="text-align:left">压缩率高，但有空间放大</td>
+</tr>
+</tbody>
+</table>
+<h3 id="结语"><a class="markdownIt-Anchor" href="#结语">#</a> 结语</h3>
+<p>从 BST 到 B+ Tree 再到 LSM Tree，索引结构的演进史就是一部<strong>与硬件特性（特别是磁盘 I/O）博弈的历史</strong>。没有完美的算法，只有最适合场景的权衡（Trade-off）。理解这些底层原理，能帮助我们在设计系统时做出更明智的决策。</p>
+
+      <div class="tags">
+          <a href="/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/" rel="tag"><i class="ic i-tag"></i> 数据库</a>
+          <a href="/tags/%E6%8A%80%E6%9C%AF/" rel="tag"><i class="ic i-tag"></i> 技术</a>
+          <a href="/tags/%E7%B4%A2%E5%BC%95/" rel="tag"><i class="ic i-tag"></i> 索引</a>
+      </div>
+  </div>
+
+   <footer>
+
+    <div class="meta">
+  <span class="item">
+    <span class="icon">
+      <i class="ic i-calendar-check"></i>
+    </span>
+    <span class="text">更新于</span>
+    <time title="修改时间：2025-12-15 18:50:43" itemprop="dateModified" datetime="2025-12-15T18:50:43+08:00">2025-12-15</time>
+  </span>
+  <span id="2025/12/15/基于树的索引/" class="item leancloud_visitors" data-flag-title="深度解析基于树的索引：从二叉树到B+树与LSM树" title="阅读次数">
+      <span class="icon">
+        <i class="ic i-eye"></i>
+      </span>
+      <span class="text">阅读次数</span>
+      <span class="leancloud-visitors-count"></span>
+      <span class="text">次</span>
+  </span>
+</div>
+
+      
+<div class="reward">
+  <button><i class="ic i-heartbeat"></i> 赞赏</button>
+  <p>请我喝[茶]~(￣▽￣)~*</p>
+  <div id="qr">
+      
+      <div>
+        <img data-src="/https:/klbq-web-cms.strinova.com/prod/strinova_web/images/202505/cbce49dd-9918-4055-923f-75827f24b54d.jpg/wechatpay.png" alt="橙子 微信支付">
+        <p>微信支付</p>
+      </div>
+      
+      <div>
+        <img data-src="/https:/klbq-web-cms.strinova.com/prod/strinova_web/images/202505/cbce49dd-9918-4055-923f-75827f24b54d.jpg/alipay.png" alt="橙子 支付宝">
+        <p>支付宝</p>
+      </div>
+      
+      <div>
+        <img data-src="/https:/klbq-web-cms.strinova.com/prod/strinova_web/images/202505/cbce49dd-9918-4055-923f-75827f24b54d.jpg/paypal.png" alt="橙子 贝宝">
+        <p>贝宝</p>
+      </div>
+  </div>
+</div>
+
+      
+
+<div id="copyright">
+<ul>
+  <li class="author">
+    <strong>本文作者： </strong>橙子 <i class="ic i-at"><em>@</em></i>橙子的小站
+  </li>
+  <li class="link">
+    <strong>本文链接：</strong>
+    <a href="https://orangeplz.github.io/2025/12/15/%E5%9F%BA%E4%BA%8E%E6%A0%91%E7%9A%84%E7%B4%A2%E5%BC%95/" title="深度解析基于树的索引：从二叉树到B+树与LSM树">https://orangeplz.github.io/2025/12/15/基于树的索引/</a>
+  </li>
+  <li class="license">
+    <strong>版权声明： </strong>本站所有文章除特别声明外，均采用 <span class="exturl" data-url="aHR0cHM6Ly9jcmVhdGl2ZWNvbW1vbnMub3JnL2xpY2Vuc2VzL2J5LW5jLXNhLzQuMC9kZWVkLnpo"><i class="ic i-creative-commons"><em>(CC)</em></i>BY-NC-SA</span> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+  </footer>
+
+</article>
+
+  </div>
+  
+
+<div class="post-nav">
+    <div class="item left">
+    </div>
+    <div class="item right">
+      
+
+  <a href="/2025/12/15/%E5%93%88%E5%B8%8C/" itemprop="url" rel="next" data-background-image="https:&#x2F;&#x2F;klbq-web-cms.strinova.com&#x2F;prod&#x2F;strinova_web&#x2F;images&#x2F;202505&#x2F;cbce49dd-9918-4055-923f-75827f24b54d.jpg" title="哈希索引的一些浅薄见解">
+  <span class="type">下一篇</span>
+  <span class="category"><i class="ic i-flag"></i> 技术</span>
+  <h3>哈希索引的一些浅薄见解</h3>
+  </a>
+
+    </div>
+</div>
+
+  
+  <div class="wrap" id="comments"></div>
+
+
+        </div>
+        <div id="sidebar">
+          
+
+<div class="inner">
+
+  <div class="panels">
+    <div class="inner">
+      <div class="contents panel pjax" data-title="文章目录">
+          <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%E5%9F%BA%E4%BA%8E%E6%A0%91%E7%9A%84%E7%B4%A2%E5%BC%95%E4%BB%8E%E4%BA%8C%E5%8F%89%E6%A0%91%E5%88%B0-b-%E6%A0%91%E4%B8%8E-lsm-%E6%A0%91"><span class="toc-number">1.</span> <span class="toc-text"> 深入解析基于树的索引：从二叉树到 B+ 树与 LSM 树</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E8%B5%B7%E7%82%B9%E4%BA%8C%E5%8F%89%E6%90%9C%E7%B4%A2%E6%A0%91-bst"><span class="toc-number">1.1.</span> <span class="toc-text"> 1. 起点：二叉搜索树 (BST)</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%A0%B8%E5%BF%83%E9%80%BB%E8%BE%91"><span class="toc-number">1.1.1.</span> <span class="toc-text"> 核心逻辑</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%87%B4%E5%91%BD%E7%BC%BA%E9%99%B7"><span class="toc-number">1.1.2.</span> <span class="toc-text"> 致命缺陷</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E7%A3%81%E7%9B%98%E6%97%B6%E4%BB%A3%E7%9A%84%E7%8E%8B%E8%80%85b-tree"><span class="toc-number">1.2.</span> <span class="toc-text"> 2. 磁盘时代的王者：B-Tree</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%A0%B8%E5%BF%83%E7%89%B9%E6%80%A7"><span class="toc-number">1.2.1.</span> <span class="toc-text"> 核心特性</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BC%98%E5%8A%BF"><span class="toc-number">1.2.2.</span> <span class="toc-text"> 优势</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-%E5%B7%A5%E4%B8%9A%E7%95%8C%E7%9A%84%E4%BA%8B%E5%AE%9E%E6%A0%87%E5%87%86b-tree"><span class="toc-number">1.3.</span> <span class="toc-text"> 3. 工业界的事实标准：B+ Tree</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#b-tree-%E4%B8%8E-b-tree-%E7%9A%84%E6%A0%B8%E5%BF%83%E5%8C%BA%E5%88%AB"><span class="toc-number">1.3.1.</span> <span class="toc-text"> B+ Tree 与 B-Tree 的核心区别</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88-b-tree-%E6%9B%B4%E9%80%82%E5%90%88%E6%95%B0%E6%8D%AE%E5%BA%93"><span class="toc-number">1.3.2.</span> <span class="toc-text"> 为什么 B+ Tree 更适合数据库？</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E5%86%99%E5%AF%86%E9%9B%86%E5%9E%8B%E5%9C%BA%E6%99%AF%E7%9A%84%E6%96%B0%E6%98%9Flsm-tree"><span class="toc-number">1.4.</span> <span class="toc-text"> 4. 写密集型场景的新星：LSM Tree</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86"><span class="toc-number">1.4.1.</span> <span class="toc-text"> 工作原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BC%98%E7%BC%BA%E7%82%B9%E6%9D%83%E8%A1%A1"><span class="toc-number">1.4.2.</span> <span class="toc-text"> 优缺点权衡</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-%E6%80%BB%E7%BB%93%E4%B8%8E%E9%80%89%E5%9E%8B%E6%8C%87%E5%8D%97"><span class="toc-number">1.5.</span> <span class="toc-text"> 5. 总结与选型指南</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BB%93%E8%AF%AD"><span class="toc-number">1.5.1.</span> <span class="toc-text"> 结语</span></a></li></ol></li></ol></li></ol>
+      </div>
+      <div class="related panel pjax" data-title="系列文章">
+        <ul>
+          <li><a href="/2025/12/15/%E5%93%88%E5%B8%8C/" rel="bookmark" title="哈希索引的一些浅薄见解">哈希索引的一些浅薄见解</a></li><li class="active"><a href="/2025/12/15/%E5%9F%BA%E4%BA%8E%E6%A0%91%E7%9A%84%E7%B4%A2%E5%BC%95/" rel="bookmark" title="深度解析基于树的索引：从二叉树到B+树与LSM树">深度解析基于树的索引：从二叉树到B+树与LSM树</a></li>
+        </ul>
+      </div>
+      <div class="overview panel" data-title="站点概览">
+        <div class="author" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <img class="image" itemprop="image" alt="橙子"
+      data-src="/https:/klbq-web-cms.strinova.com/prod/strinova_web/images/202505/cbce49dd-9918-4055-923f-75827f24b54d.jpg/source/images/avatar.png">
+  <p class="name" itemprop="name">橙子</p>
+  <div class="description" itemprop="description"></div>
+</div>
+
+<nav class="state">
+    <div class="item posts">
+      <a href="/archives/">
+        <span class="count">2</span>
+        <span class="name">文章</span>
+      </a>
+    </div>
+    <div class="item categories">
+      <a href="/categories/">
+        <span class="count">1</span>
+        <span class="name">分类</span>
+      </a>
+    </div>
+    <div class="item tags">
+      <a href="/tags/">
+        <span class="count">4</span>
+        <span class="name">标签</span>
+      </a>
+    </div>
+</nav>
+
+<div class="social">
+</div>
+
+<ul class="menu">
+  
+    
+  <li class="item">
+    <a href="/" rel="section"><i class="ic i-home"></i>首页</a>
+  </li>
+
+
+</ul>
+
+      </div>
+    </div>
+  </div>
+
+  <ul id="quick">
+    <li class="prev pjax">
+    </li>
+    <li class="up"><i class="ic i-arrow-up"></i></li>
+    <li class="down"><i class="ic i-arrow-down"></i></li>
+    <li class="next pjax">
+    </li>
+    <li class="percent"></li>
+  </ul>
+</div>
+
+
+        </div>
+        <div class="dimmer"></div>
+      </div>
+    </main>
+    <footer id="footer">
+      <div class="inner">
+        <div class="widgets">
+          
+<div class="rpost pjax">
+  <h2>随机文章</h2>
+  <ul>
+      
+  <li class="item">
+    
+<div class="breadcrumb">
+<a href="/categories/%E6%8A%80%E6%9C%AF/" title="分类于 技术">技术</a>
+</div>
+
+    <span><a href="/2025/12/15/%E5%9F%BA%E4%BA%8E%E6%A0%91%E7%9A%84%E7%B4%A2%E5%BC%95/" title="深度解析基于树的索引：从二叉树到B+树与LSM树">深度解析基于树的索引：从二叉树到B+树与LSM树</a></span>
+  </li>
+
+      
+  <li class="item">
+    
+<div class="breadcrumb">
+<a href="/categories/%E6%8A%80%E6%9C%AF/" title="分类于 技术">技术</a>
+</div>
+
+    <span><a href="/2025/12/15/%E5%93%88%E5%B8%8C/" title="哈希索引的一些浅薄见解">哈希索引的一些浅薄见解</a></span>
+  </li>
+
+  </ul>
+</div>
+<div>
+  <h2>最新评论</h2>
+  <ul class="leancloud-recent-comment"></ul>
+</div>
+
+        </div>
+        <div class="status">
+  <div class="copyright">
+    
+    &copy; 2010 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="ic i-sakura rotate"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">橙子 @ 橙子的小窝</span>
+  </div>
+  <div class="powered-by">
+    基于 <span class="exturl" data-url="aHR0cHM6Ly9oZXhvLmlv">Hexo</span> & Theme.<span class="exturl" data-url="aHR0cHM6Ly9naXRodWIuY29tL2FtZWhpbWUvaGV4by10aGVtZS1zaG9rYQ==">Shoka</span>
+  </div>
+</div>
+
+      </div>
+    </footer>
+  </div>
+<script data-config type="text/javascript">
+  var LOCAL = {
+    path: '2025/12/15/基于树的索引/',
+    favicon: {
+      show: "（●´3｀●）やれやれだぜ",
+      hide: "(´Д｀)大変だ！"
+    },
+    search : {
+      placeholder: "文章搜索",
+      empty: "关于 「 ${query} 」，什么也没搜到",
+      stats: "${time} ms 内找到 ${hits} 条结果"
+    },
+    valine: true,fancybox: true,
+    copyright: '复制成功，转载请遵守 <i class="ic i-creative-commons"></i>BY-NC-SA 协议。',
+    ignores : [
+      function(uri) {
+        return uri.includes('#');
+      },
+      function(uri) {
+        return new RegExp(LOCAL.path+"$").test(uri);
+      }
+    ]
+  };
+</script>
+
+<script src="https://cdn.polyfill.io/v2/polyfill.js"></script>
+
+<script src="//cdn.jsdelivr.net/combine/npm/pace-js@1.0.2/pace.min.js,npm/pjax@0.2.8/pjax.min.js,npm/whatwg-fetch@3.4.0/dist/fetch.umd.min.js,npm/animejs@3.2.0/lib/anime.min.js,npm/algoliasearch@4/dist/algoliasearch-lite.umd.js,npm/instantsearch.js@4/dist/instantsearch.production.min.js,npm/lozad@1/dist/lozad.min.js,npm/quicklink@2/dist/quicklink.umd.js"></script>
+
+<script src="/js/app.js?v=0.2.5"></script>
+
+
+
+
+</body>
+</html>
