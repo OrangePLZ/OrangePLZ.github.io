@@ -101,5 +101,5 @@ theme: shoka
 
 deploy:
   type: git
-  repo: https://github.com/OrangePLZ/orange-hexo.git
+  repo: https://github.com/OrangePLZ/OrangePLZ.github.io
   branch: gh-pages
